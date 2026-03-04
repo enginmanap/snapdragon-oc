@@ -37,7 +37,7 @@ void* sdocInit(unsigned int width, unsigned int height, float nearPlane)
     }
 
 #if defined(SDOC_STATIC)
-	LOGI("Static SDOC Version %d.%d Started", common::VERSION_MAJOR, common::VERSION_SUB);
+	LOGI("Static SDOC Version %d.%d Started", SDOCCommon::VERSION_MAJOR, SDOCCommon::VERSION_SUB);
 #else
 	LOGI("Dynamic SDOC Version %d.%d Started", SDOCCommon::VERSION_MAJOR, SDOCCommon::VERSION_SUB);
 #endif

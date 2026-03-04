@@ -1322,7 +1322,7 @@ void SOCPrivate::startNewFrame(const float *CameraPos, const float *ViewDir, con
 		int hour = ltm->tm_hour;
 		int minute = ltm->tm_min;
 		int sec = ltm->tm_sec;
-		std::string fileName = outputDir + "//SDOC"
+		std::string fileName = outputDir + "./SDOC"
 			+ std::to_string(year) + "_"
 			+ std::to_string(month) + "_"
 			+ std::to_string(day) + "_"

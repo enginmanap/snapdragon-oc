@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.5.1)
 
 # source
 aux_source_directory(./private SRC)
@@ -11,11 +11,13 @@ if (SDOC_IOS)
     # Temporary solution: To print the log, mark the source files as OBJCXX, which is a mixed type contains both C++ and Obj-C
     set_source_files_properties(${SRC} PROPERTIES LANGUAGE OBJCXX)
 endif()
-
+if(SDOC_WIN)
+	MESSAGE("ENGIN: SDOC_WIN is defined")
+endif ()
 # library
 if (SDOC_IOS)
     add_library(SDOC.quic STATIC ${SRC} ${CURRENT_HEADERS})
-elseif (SDOC_WIN AND SDOC_STATIC)
+elseif (SDOC_WIN AND SDOC_STATIC AND MSVC)
 	add_library(Commonlib OBJECT IMPORTED)
 	if(SDOC_DEBUG)
 		set_property(TARGET Commonlib PROPERTY IMPORTED_OBJECTS "$/../../Common/Debug/Common.lib")
@@ -52,6 +54,8 @@ elseif (SDOC_ANDROID_ARM AND SDOC_STATIC)
     set_property(TARGET RapidRasterizerLib PROPERTY IMPORTED_OBJECTS "$/../../Util/RapidRasterizer/libRapidRasterizer.a")
     add_library(SDOC.quic STATIC ${SRC} ${CURRENT_HEADERS}  $<TARGET_OBJECTS:Commonlib>  $<TARGET_OBJECTS:RapidRasterizerLib> )
 	set_target_properties(SDOC.quic PROPERTIES LINK_FLAGS_RELEASE -s)
+elseif (SDOC_STATIC)
+	add_library(SDOC.quic STATIC ${SRC} ${CURRENT_HEADERS})
 else()
     add_library(SDOC.quic SHARED ${SRC} ${CURRENT_HEADERS})
 endif() 

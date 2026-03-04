@@ -8,7 +8,9 @@
 
 #pragma once
 
-#if defined(SDOC_LIB_EXPORT)
+#if defined(SDOC_STATIC)
+    #define VISIBLE_SYMBOL
+#elif defined(SDOC_LIB_EXPORT)
 	#if defined(__ANDROID__) || defined(__APPLE__)
 	#define VISIBLE_SYMBOL __attribute__((__visibility__("default")))
 	#elif defined(_WIN64) || defined(_WIN32)

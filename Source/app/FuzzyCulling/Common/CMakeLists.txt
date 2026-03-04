@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.4.1)
+cmake_minimum_required(VERSION 3.5.1)
 
 # include
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -17,6 +17,8 @@ endif()
 
 # library
 add_library(Common STATIC ${SRC} ${CURRENT_HEADERS})
+
+target_include_directories(Common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # link
 if (SDOC_ANDROID_ARM)

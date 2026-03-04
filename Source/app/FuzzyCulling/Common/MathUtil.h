@@ -13,7 +13,7 @@
 #include "CompilerSpecificSIMD.h"
 #include <vector>
 
-
+#include <cstdint>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <string>

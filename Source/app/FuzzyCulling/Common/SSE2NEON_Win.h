@@ -23,6 +23,7 @@
 
 #if defined(SDOC_NATIVE) && !defined(__aarch64__)
 #pragma once
+#include <cstdint>
 #include <immintrin.h>
 #include <algorithm>
 #pragma warning( disable : 4305  )
