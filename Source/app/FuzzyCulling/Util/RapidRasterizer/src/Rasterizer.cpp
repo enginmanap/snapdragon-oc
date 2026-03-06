@@ -2165,6 +2165,11 @@ bool Rasterizer::queryVisibility(const float* minmaxf, OccluderRenderCache* occ)
 		__m128i	minsXY = _mm_cvttps_epi32(_mm_min_ps(_mm_unpacklo_ps(minsX, minsY), _mm_unpackhi_ps(minsX, minsY)));
 		__m128i	maxsXY = _mm_cvttps_epi32(_mm_max_ps(_mm_unpacklo_ps(maxsX, maxsY), _mm_unpackhi_ps(maxsX, maxsY)));
 
+		// FIX: Handle integer overflow for distant objects.
+		// If maxsXY is negative, it means the coordinate overflowed (was Infinity or very large).
+		// We clamp it to the screen maximum to ensure the bounding box remains valid.
+		__m128i overflowMask = _mm_cmplt_epi32(maxsXY, _mm_setzero_si128());
+		maxsXY = _mm_or_si128(_mm_andnot_si128(overflowMask, maxsXY), _mm_and_si128(overflowMask, m_MaxCoordOccludee_WHWH));
 
 		//stress test. put in inf number to check whether crash
 		//minsX = _mm_castsi128_ps(_mm_set1_epi32(0x7f800000));
