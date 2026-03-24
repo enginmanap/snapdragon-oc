@@ -15,5 +15,9 @@ endif()
 # library
 add_library(RapidRasterizer STATIC ${SRC} ${CURRENT_HEADERS})
 
+if(NOT MSVC)
+    target_compile_options(RapidRasterizer PRIVATE -fno-strict-aliasing)
+endif()
+
 # link
 target_link_libraries(RapidRasterizer Common)
