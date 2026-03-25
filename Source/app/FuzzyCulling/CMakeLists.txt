@@ -73,6 +73,16 @@ elseif ((${CMAKE_SYSTEM_NAME} STREQUAL Windows) )
     set(SDOC_WIN 1)
 
     add_definitions(-DSDOC_WIN)
+elseif ((${CMAKE_SYSTEM_NAME} STREQUAL Linux) )
+    message(STATUS "SDOC X86 Native")
+    set(SDOC_NATIVE 1)
+    add_definitions(-DSDOC_NATIVE)
+
+    set(SDOC_LIB_EXPORT 1)
+    add_definitions(-DSDOC_LIB_EXPORT)
+    set(SDOC_LINUX 1)
+
+    add_definitions(-DSDOC_LINUX)
 elseif ( (${CMAKE_SYSTEM_NAME} STREQUAL iOS))
     message(STATUS "SDOC Mobile")
     set(SDOC_MOBILE 1)

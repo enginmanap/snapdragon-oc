@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <stdlib.h>
 #include <new>
 
@@ -19,7 +20,9 @@
 #ifdef SDOC_ANDROID_ARM
 #include <byteswap.h> //GCC Clang
 #endif
-
+#ifdef SDOC_LINUX
+#include <byteswap.h> //GCC Clang
+#endif
 #ifdef __APPLE__
 #include <libkern/OSByteOrder.h>
 #endif
@@ -33,8 +36,10 @@ namespace SDOCCommon
 		return _byteswap_uint64(mask); //bswap r64 is 2 uops on Intel CPUs
 #elif defined(SDOC_ANDROID_ARM)
 		return bswap_64(mask);
+#elif defined(SDOC_LINUX)
+        return bswap_64(mask);
 #else
-        return _OSSwapInt64(mask);
+		return _OSSwapInt64(mask);
 #endif
 	}
 	
