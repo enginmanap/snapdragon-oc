@@ -20,8 +20,11 @@
 #if defined(SDOC_ANDROID_ARM)
 #define PLATFORM_ANDROID_ARM 1
 #endif
+#if defined(SDOC_LINUX)
+#define PLATFORM_LINUX 1
+#endif
 
-#if PLATFORM_WINDOWS || PLATFORM_ANDROID_ARM || PLATFORM_IOS
+#if PLATFORM_WINDOWS || PLATFORM_ANDROID_ARM || PLATFORM_IOS || PLATFORM_LINUX
 #include <memory>
 #include <vector>
 #include "../../../Common/MathUtil.h"

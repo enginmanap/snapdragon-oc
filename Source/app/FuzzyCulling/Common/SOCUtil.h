@@ -100,7 +100,7 @@ public:
 			_mkdir(output.c_str());
 			pathValid = SOCLogger::IsPathValid(output);
 		}
-#elif defined(SDOC_OSX)
+#elif defined(SDOC_OSX) || defined(SDOC_LINUX)
 		//_mkdir(output.c_str());
         std::system(("mkdir " + output).c_str());
 		pathValid = SOCLogger::IsPathValid(output);

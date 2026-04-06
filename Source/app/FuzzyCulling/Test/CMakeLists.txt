@@ -15,4 +15,8 @@ source_group("Include" FILES ${CURRENT_HEADERS})
 
 add_executable(SDOCReplay ${SRC} ${CURRENT_HEADERS})
 target_link_libraries(SDOCReplay SDOC.quic)
-	
+
+if (SDOC_LINUX)
+    target_link_libraries(SDOCReplay pthread m)
+endif()
+

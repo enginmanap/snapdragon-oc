@@ -1111,8 +1111,8 @@ inline int _mm_movemask_epi16_soc(__m128i a)
 #if __LITTLE_ENDIAN__
 	uint16x8_t input = vreinterpretq_u16_m128i(a);
 	uint16x8_t high_bits = vshrq_n_u16(input, 15);
-	uint64x2_t paired32 = vsraq_n_u32(high_bits, high_bits, 15);
-	uint8x16_t paired64 = vsraq_n_u64(paired32, paired32, 30);
+	uint64x2_t paired32 = vreinterpretq_u64_u32(vsraq_n_u32(vreinterpretq_u32_u16(high_bits), vreinterpretq_u32_u16(high_bits), 15));
+	uint8x16_t paired64 = vreinterpretq_u8_u64(vsraq_n_u64(paired32, paired32, 30));
 	return vgetq_lane_u8(paired64, 0) | ((int)vgetq_lane_u8(paired64, 8) << 4);
 #else
 	uint8x16_t ia = vreinterpretq_u8_m128i(a);
@@ -1256,7 +1256,7 @@ inline __m128 _mm_sub_ps(__m128 a, __m128 b)
 // Subtracts the 4 signed or unsigned 32-bit integers of b from the 4 signed or unsigned 32-bit integers of a
 inline __m128i _mm_sub_epi32(__m128i a, __m128i b)
 {
-    return vreinterpretq_m128_f32(vsubq_s32(vreinterpretq_f32_m128(a), vreinterpretq_f32_m128(b)));
+    return vreinterpretq_m128i_s32(vsubq_s32(vreinterpretq_s32_m128i(a), vreinterpretq_s32_m128i(b)));
 }
 
 inline __m128i _mm_sub_epi16(__m128i a, __m128i b)
@@ -1534,7 +1534,7 @@ inline __m128i _mm_mulhi_epi16(__m128i a, __m128i b)
 
 inline uint64_t _mm_getUint16Max8_soc(__m128i a)
 {
-	return  (uint64_t) vqshrn_n_u16(vreinterpretq_s16_m128i(a), 8);
+	return  (uint64_t) vqshrn_n_u16(vreinterpretq_u16_m128i(a), 8);
 }
 
 // Computes pairwise add of each argument as single-precision, floating-point values a and b.
@@ -2070,19 +2070,19 @@ inline __m128 _mm_fmsub_ps_soc(const __m128 &a, const __m128 &b, const __m128 &c
 
 inline __m128i _mm_packus_epi32(const __m128i &a, const __m128i &b)
 {
-    return vcombine_u16(vqmovn_u32(a), vqmovn_u32(b));
+    return vreinterpretq_m128i_u16(vcombine_u16(vqmovn_u32(vreinterpretq_u32_m128i(a)), vqmovn_u32(vreinterpretq_u32_m128i(b))));
 }
 
 inline __m128i _mm_packus_epi32(const __m128i &a)
 {
-    uint16x4_t a_16x4 = vqmovn_u32(a);
-    return vcombine_u16(a_16x4, a_16x4);
+    uint16x4_t a_16x4 = vqmovn_u32(vreinterpretq_u32_m128i(a));
+    return vreinterpretq_m128i_u16(vcombine_u16(a_16x4, a_16x4));
 }
 
 inline uint16_t _mm_max_epu16(const __m128i &a)
 {
 #ifdef __aarch64__
-    return vmaxvq_u16(a);
+    return vmaxvq_u16(vreinterpretq_u16_m128i(a));
 #else
 	//uint16x8_t a16x8 = vreinterpretq_u16_m128i(a);
 	//uint16_t max_val = a16x8[0];
@@ -2105,7 +2105,7 @@ inline uint16_t _mm_max_epu16_even(const __m128i &a)
 	return _mm_max_epu16(a);
 
 #ifdef __aarch64__
-	return vmaxvq_u16(a);
+	return vmaxvq_u16(vreinterpretq_u16_m128i(a));
 #else
 	//armv7 code need to be tested to use
 	uint32x2_t tmp;
@@ -2119,7 +2119,7 @@ inline uint16_t _mm_max_epu16_even(const __m128i &a)
 inline uint16_t _mm_min_epu16(const __m128i &a)
 {
 #ifdef __aarch64__
-    return vminvq_u16(a);
+    return vminvq_u16(vreinterpretq_u16_m128i(a));
 #else
     //uint16x8_t a16x8 = vreinterpretq_u16_m128i(a);
     //uint16_t min_val = a16x8[0];
@@ -2139,34 +2139,39 @@ inline uint16_t _mm_min_epu16(const __m128i &a)
 #endif
 }
 
+inline __m128i _mm_min_epu16(const __m128i &a, const __m128i &b)
+{
+    return vreinterpretq_m128i_u16(vminq_u16(vreinterpretq_u16_m128i(a), vreinterpretq_u16_m128i(b)));
+}
+
 inline __m128i _mm_min_epu16(const __m128 &a, const __m128 &b)
 {
-    return vminq_u16(a, b);
+    return vreinterpretq_m128i_u16(vminq_u16(vreinterpretq_u16_m128(a), vreinterpretq_u16_m128(b)));
 }
 
 inline __m128i _mm_max_epu16(const __m128i &a, const __m128i &b)
 {
-    return vmaxq_u16(a, b);
+    return vreinterpretq_m128i_u16(vmaxq_u16(vreinterpretq_u16_m128i(a), vreinterpretq_u16_m128i(b)));
 }
 
 //added by soc
 inline __m128i _mm_cmple_epu16_soc(const __m128i &a, const __m128i &b)
 {
-	return vcleq_u16(a, b);  //supported in v7/A32/A64
+	return vreinterpretq_m128i_u16(vcleq_u16(vreinterpretq_u16_m128i(a), vreinterpretq_u16_m128i(b)));  //supported in v7/A32/A64
 }
 inline __m128i _mm_cmpge_epu16_soc(const __m128i &a, const __m128i &b)
 {
-	return vcgeq_u16(a, b);  //supported in v7/A32/A64
+	return vreinterpretq_m128i_u16(vcgeq_u16(vreinterpretq_u16_m128i(a), vreinterpretq_u16_m128i(b)));  //supported in v7/A32/A64
 }
 
 inline __m128i _mm_cmplt_epu16_soc(const __m128i &a, const __m128i &b)
 {
-	return vcltq_u16(a, b);  //supported in v7/A32/A64
+	return vreinterpretq_m128i_u16(vcltq_u16(vreinterpretq_u16_m128i(a), vreinterpretq_u16_m128i(b)));  //supported in v7/A32/A64
 }
 
 inline __m128i _mm_cmplt_epu8_soc(const __m128i &a, const __m128i &b)
 {
-	return vcltq_u8(a, b);  //supported in v7/A32/A64
+	return vreinterpretq_m128i_u8(vcltq_u8(vreinterpretq_u8_m128i(a), vreinterpretq_u8_m128i(b)));  //supported in v7/A32/A64
 }
 
 // Compares for less than abs
@@ -2285,7 +2290,7 @@ inline __m128 _mm_set_w(const __m128 &a, float w)
 
 inline __m128 _mm_blendv_ps(const __m128 &a, const __m128 &b, const __m128 &mask)
 {
-    return vbslq_f32(mask, b, a);
+    return vbslq_f32(vreinterpretq_u32_m128(mask), b, a);
 }
 
 // Multiply the low unsigned 32-bit integers from each packed 64-bit element in
@@ -2307,7 +2312,7 @@ inline __m128i _mm_unpacklo_epi8_soc(uint64_t b)
 #if defined(__aarch64__)
 	__m128i input = _mm_set_epi64x(0, b);
 	return vreinterpretq_m128i_s8(
-		vzip1q_s8(vdupq_n_s32(0), vreinterpretq_s8_m128i(input)));
+		vzip1q_s8(vreinterpretq_s8_m128i(vdupq_n_s32(0)), vreinterpretq_s8_m128i(input)));
 #else
 	int8x8_t a1 = vcreate_s8(0);
 	int8x8_t b1 = vcreate_s8(b);

@@ -1166,7 +1166,7 @@ void SOCPrivate::startNewFrame(const float *CameraPos, const float *ViewDir, con
 		std::string folderName = inputFile.substr(0, found + 1) + "/Output/";
 #if defined(SDOC_WIN)
 		_mkdir(folderName.c_str());
-#elif defined(SDOC_ANDROID_ARM)
+#elif defined(SDOC_LINUX) || defined(SDOC_ANDROID_ARM)
 		mkdir(folderName.c_str(), 777);
 #endif
 
