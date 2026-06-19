@@ -4705,10 +4705,19 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 		mat[3] = matT3;
 	}
 
+	// Orthographic: W is constant, so the 1/W-based depth fit above degenerates (Wa==Wb, masked to a
+	// constant). Depth is instead carried explicitly as clip-Z in the invW slot (see the occluder transform
+	// below), so the reconstruction z = invW*c1 + c0 must be the identity.
+	if (mIsOrthographic) {
+		occluderCache->c1 = _mm_set1_ps(1.0f);
+		occluderCache->c0 = _mm_setzero_ps();
+	}
+
 	// *****_MM_SHUFFLE*****
 	__m128 mat33;// = _mm_shuffle_ps_single_index(occluderCache->mat[3], 3);
 	__m128 mat03;// = _mm_shuffle_ps_single_index(occluderCache->mat[0], 3);
 	__m128 mat13;// = _mm_shuffle_ps_single_index(occluderCache->mat[1], 3);
+	__m128 mat23 = _mm_setzero_ps();// folded clip-Z constant term; only populated for orthographic cameras
 
 
 	{
@@ -4716,12 +4725,14 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 		mat03 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[0]));
 		mat13 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[1]));
 		mat33 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[3]));
-		
+		if (mIsOrthographic) mat23 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[2]));// fold the depth row, like X/Y/W
+
 		///Xf0 = _mm_fmadd_ps(dataArray[0], b, c);
 		__m128 b = occluderCache->FullMeshInvExtents[0];
 		mat[0] = _mm_mul_ps(mat[0], b);
 		mat[1] = _mm_mul_ps(mat[1], b);
-		mat[3] = _mm_mul_ps(mat[3], b);				
+		mat[3] = _mm_mul_ps(mat[3], b);
+		if (mIsOrthographic) mat[2] = _mm_mul_ps(mat[2], b);// fold the depth row, like X/Y/W
 	}
 
 
@@ -5433,7 +5444,25 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 				Y[1] = _mm_mul_ps(Y[1], invW[1]);
 				Y[2] = _mm_mul_ps(Y[2], invW[2]);
 
-			
+				if (mIsOrthographic) {
+					// X/Y are now screen coords. Under ortho the invW slot is constant and carries no depth,
+					// so recompute the (folded) clip-space depth from the Z row (matF[8..10] + mat23) and
+					// store screen depth (clip-Z * invW) back into the invW slot. With c1=1/c0=0 set above,
+					// the downstream z = invW*c1 + c0 then equals true depth, and the screen-space depth
+					// plane interpolates it correctly (orthographic depth is screen-linear).
+					__m128 mat20 = _mm_set1_ps(matF[8]);
+					__m128 mat21 = _mm_set1_ps(matF[9]);
+					__m128 mat22 = _mm_set1_ps(matF[10]);
+					__m128 Z[3];
+					Z[faceIdx0] = _mm_fmadd_ps_soc(dataArray[0], mat20, _mm_fmadd_ps_soc(dataArray[3], mat21, _mm_fmadd_ps_soc(dataArray[6], mat22, mat23)));
+					Z[1]        = _mm_fmadd_ps_soc(dataArray[2], mat20, _mm_fmadd_ps_soc(dataArray[5], mat21, _mm_fmadd_ps_soc(dataArray[8], mat22, mat23)));
+					Z[faceIdx2] = _mm_fmadd_ps_soc(dataArray[1], mat20, _mm_fmadd_ps_soc(dataArray[4], mat21, _mm_fmadd_ps_soc(dataArray[7], mat22, mat23)));
+					invW[0] = _mm_mul_ps(Z[0], invW[0]);
+					invW[1] = _mm_mul_ps(Z[1], invW[1]);
+					invW[2] = _mm_mul_ps(Z[2], invW[2]);
+				}
+
+
 
 				if (DebugOccluderOccludee)
 				{

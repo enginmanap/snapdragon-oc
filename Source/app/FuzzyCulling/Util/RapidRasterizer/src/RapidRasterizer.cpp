@@ -219,6 +219,11 @@ void RapidRasterizer::setNearPlane(float nearPlane)
 	m_instance->mNearPlane = nearPlane;
 }
 
+void RapidRasterizer::setOrthographic(bool isOrthographic)
+{
+	m_instance->mIsOrthographic = isOrthographic;
+}
+
 size_t RapidRasterizer::getMemoryByteUsed()
 {
 	size_t memory =  0;

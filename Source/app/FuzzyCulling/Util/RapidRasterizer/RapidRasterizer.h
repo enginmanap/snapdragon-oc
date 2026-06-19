@@ -124,6 +124,7 @@ public:
 	bool mShowCulled = false; //default to be false
 	bool mInRenderingState = false;
 	void setNearPlane(float nearPlane);
+	void setOrthographic(bool isOrthographic);
 	int mLastBakedOccluderNum = 0;
 	int mLastFullOccluderNum = 0;
 	bool PrintNumberOfOccluderOnce = false;

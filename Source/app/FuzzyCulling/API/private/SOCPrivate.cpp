@@ -248,12 +248,21 @@ void SOCPrivate::startNewFrame(const float *CameraPos, const float *ViewDir, con
 		//update ViewProjT if VP is changed!
 		m_frameInfo->m_rapidRasterizer->mViewProjT.updateTranspose(ViewProj);
 	}
-	else 
+	else
 	{
 		m_frameInfo->IsSameCameraWithPrev = !this->mResolutionChanged;
 	}
 
-	
+	// Auto-detect orthographic projection: an ortho view-projection has a constant W (its bottom row is
+	// [0,0,0,1], i.e. column-major flat indices 3,7,11,15). The rasterizer needs this because its occluder
+	// depth is normally reconstructed from 1/W, which is constant (and useless) under ortho.
+	{
+		float w0 = ViewProj[3], w1 = ViewProj[7], w2 = ViewProj[11], w3 = ViewProj[15] - 1.0f;
+		bool isOrthographic = (w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) < 1e-9f;
+		this->m_rapidRasterizer->setOrthographic(isOrthographic);
+	}
+
+
 	if (m_frameInfo->mIsRecording)
 	{
 		m_frameInfo->mIsRecording = false;

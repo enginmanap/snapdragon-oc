@@ -423,6 +423,10 @@ public:
 		
 
 	float mNearPlane = 1.0f;
+	// When true the camera is orthographic, so clip-space W is constant and the usual 1/W-based depth
+	// reconstruction degenerates. In this mode the occluder transform carries clip-Z explicitly (folding
+	// the depth row through the mesh extents) and stores it in the invW slot with c1=1/c0=0.
+	bool mIsOrthographic = false;
 
 	float mCameraPos[4];
 	uint8_t* mBakeIndices = nullptr;
