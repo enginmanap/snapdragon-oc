@@ -527,6 +527,10 @@ public:
 
 	uint32_t m_totalPixels = 0;
 
+	// Per-dump ortho stretch range (set by readBackDepth pre-pass, used by applyToneMapping)
+	float mOrthoDumpDepthMin = 0.0f;
+	float mOrthoDumpDepthMax = 2.5237386e-29f; // floatCompressionBias
+
 
 
 	void configCoherent();

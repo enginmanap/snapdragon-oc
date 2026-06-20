@@ -2782,13 +2782,27 @@ uint64_t Rasterizer::applyToneMapping(__m128i a, SDOCCommon::DumpImageMode mode)
 	for (int idx = 0; idx < 2; idx++) {
 		__m128 inputf = _mm_castsi128_ps(_mm_slli_epi32(data[idx], 12));
 		__m128 mask = _mm_cmpgt_ps(inputf, _mm_set1_ps(0.0f));
-		__m128 scale = _mm_set1_ps(3.9623753e+28f);
-		inputf = _mm_mul_ps(inputf, scale);
-		inputf = _mm_rcp_ps(inputf);
-		inputf = _mm_min_ps(_mm_max_ps(inputf, toneMin128), _mm_set1_ps(maxDepth));
-		inputf = _mm_sub_ps(inputf, toneMin128);
-		inputf = _mm_mul_ps(inputf, toneScale);
-		inputf = _mm_sub_ps(_mm_set1_ps(255.0f), inputf);
+		__m128 scale = _mm_set1_ps(3.9623753e+28f); // ≈ 1/floatCompressionBias
+		if (mIsOrthographic) {
+			// Ortho depth is linear in clip-Z. Stretch the per-frame [min,max] HIZ range to
+			// [55, 255] so the full dynamic range of visible occluders fills the image.
+			// No reciprocal — that's for perspective's 1/W encoding.
+			float range = mOrthoDumpDepthMax - mOrthoDumpDepthMin;
+			if (range < 1e-40f) range = 1e-40f;
+			__m128 toneOrthoMin = _mm_set1_ps(mOrthoDumpDepthMin);
+			__m128 toneOrthoScale = _mm_set1_ps(200.0f / range);
+			inputf = _mm_sub_ps(inputf, toneOrthoMin);
+			inputf = _mm_mul_ps(inputf, toneOrthoScale);
+			inputf = _mm_min_ps(_mm_max_ps(inputf, _mm_setzero_ps()), _mm_set1_ps(200.0f));
+			inputf = _mm_add_ps(inputf, _mm_set1_ps(55.0f));
+		} else {
+			inputf = _mm_mul_ps(inputf, scale);
+			inputf = _mm_rcp_ps(inputf);
+			inputf = _mm_min_ps(_mm_max_ps(inputf, toneMin128), _mm_set1_ps(maxDepth));
+			inputf = _mm_sub_ps(inputf, toneMin128);
+			inputf = _mm_mul_ps(inputf, toneScale);
+			inputf = _mm_sub_ps(_mm_set1_ps(255.0f), inputf);
+		}
 		inputf = _mm_and_ps(inputf, mask);
 
 		float* fp1 = (float*)&inputf;
@@ -2924,6 +2938,34 @@ bool Rasterizer::readBackDepth(unsigned char *target, SDOCCommon::DumpImageMode 
 		LOGI("blockY %d blockX %d  m_width %d Height %d m_blockSize %d interleave %d m_HizBufferSize %d OccNum %d", m_blocksY , m_blocksX , m_width , m_height ,  m_blockSize , mInterleave.CurrentFrameInterleaveDrawing , m_HizBufferSize , mCurrValidOccluderNum );
 	}
 
+
+	// Ortho pre-pass: scan HIZ for min/max to auto-stretch contrast.
+	// HIZ[i] = min uint16 depth of 8x8 block; 0 = empty block.
+	// We convert the found range to float depths for applyToneMapping.
+	if (mIsOrthographic && mCurrValidOccluderNum > 0) {
+		uint16_t hizMin = 0xFFFF, hizMax = 0;
+		for (uint32_t i = 0; i < m_HizBufferSize; ++i) {
+			uint16_t h = m_pHiz[i];
+			if (h > 0) {
+				if (h < hizMin) hizMin = h;
+				if (h > hizMax) hizMax = h;
+			}
+		}
+		if (hizMax == 0) {
+			mOrthoDumpDepthMin = 0.0f;
+			mOrthoDumpDepthMax = 2.5237386e-29f;
+		} else {
+			// Expand range by 10% (at least 200 uint16 units) so near-identical depths still show contrast.
+			uint16_t range = hizMax - hizMin;
+			uint16_t margin = (range < 2000) ? 200 : (range / 10);
+			uint16_t stretchMin = (hizMin > margin) ? (hizMin - margin) : 0;
+			uint16_t stretchMax = (hizMax + margin < 0xFFFF) ? (hizMax + margin) : 0xFFFF;
+			uint32_t rawMin = (uint32_t)stretchMin << 12;
+			uint32_t rawMax = (uint32_t)stretchMax << 12;
+			mOrthoDumpDepthMin = *reinterpret_cast<float*>(&rawMin);
+			mOrthoDumpDepthMax = *reinterpret_cast<float*>(&rawMax);
+		}
+	}
 
 	//bool quickDumpForWindows = true;
 	//if (common::IS_ARM_PLATFORM || quickDumpForWindows)
