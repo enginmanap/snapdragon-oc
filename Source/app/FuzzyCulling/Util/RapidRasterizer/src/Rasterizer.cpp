@@ -4639,6 +4639,17 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 
 	float* matF = (float*)mat;
 
+	// In the fast path (bFastSetUpMatOp==true), bFastSetUpMatOp overwrites mat[0] and mat[1],
+	// destroying depth.x (was at matF[2]) and depth.y (was at matF[6]). mat[2] is left as
+	// column 2 of the transposed localToClip — which holds (X-vp.z, Y-vp.z, depth.z, W.z),
+	// not the depth row. Save the real depth row now, before the overwrite.
+	// In the slow path (bFastSetUpMatOp==false), _MM_TRANSPOSE4_PS restores mat[2] to the
+	// depth row anyway, so the unconditional restore below is a no-op for that path.
+	__m128 orthoDepthRow = _mm_setzero_ps();
+	if (mIsOrthographic) {
+		orthoDepthRow = _mm_setr_ps(matF[2], matF[6], matF[10], matF[14]);
+	}
+
 	if (bFastSetUpMatOp == false) {
 		// *****_MM_TRANSPOSE4_PS*****
 		_MM_TRANSPOSE4_PS(mat[0], mat[1], mat[2], mat[3]);
@@ -4725,6 +4736,10 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 		mat03 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[0]));
 		mat13 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[1]));
 		mat33 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[3]));
+		// Restore mat[2] to the correct depth row before computing the centroid constant (mat23)
+		// and before the bounding-box scale step. Without this, mat[2] in the fast path holds
+		// column 2 of the localToClip transpose (viewport-Z terms), not the depth row.
+		if (mIsOrthographic) mat[2] = orthoDepthRow;
 		if (mIsOrthographic) mat23 = _mm_sum4_ps_soc(_mm_mul_ps(c, mat[2]));// fold the depth row, like X/Y/W
 
 		///Xf0 = _mm_fmadd_ps(dataArray[0], b, c);
@@ -4734,7 +4749,6 @@ void Rasterizer::rasterize(SDOCCommon::OccluderMesh& raw, OccluderRenderCache* o
 		mat[3] = _mm_mul_ps(mat[3], b);
 		if (mIsOrthographic) mat[2] = _mm_mul_ps(mat[2], b);// fold the depth row, like X/Y/W
 	}
-
 
 	__m128  dataArray[12];
 
